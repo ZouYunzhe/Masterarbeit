@@ -72,15 +72,9 @@ switch (pairs_type)
                    pairs_neg_tmp(:,5)=0;
                    pairs_batch_part(1:size(pairs_pos_tmp,1),:)=pairs_pos_tmp;
                    pairs_batch_part(size(pairs_pos_tmp,1)+1:end,:)=pairs_neg_tmp;
-%                    for i = 1:pairs_number_iter
-%                        pairs_pos_tmp=[boxes_idx_frame1(pos_pairs_frame1_idx(p_pos(i))),boxes_idx_frame2(pos_pairs_frame2_idx(p_pos(i))),1,1,1];
-%                        pairs_neg_tmp=[boxes_idx_frame1(neg_pairs_frame1_idx(p_neg(i))),boxes_idx_frame2(neg_pairs_frame2_idx(p_neg(i))),1,1,0];
-%                        pairs_batch_part(i,:)=pairs_pos_tmp;
-%                        pairs_batch_part(end-i+1,:)=pairs_neg_tmp;
-%                    end
                    pair_batch_allparts(it).pairs_batch_part=pairs_batch_part;                  
                 end
-                pairs_batch= concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter);
+                pairs_batch= concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter,pairs_number_all,pos_ratio);
             end
         end
     case 2 
@@ -103,7 +97,7 @@ function pair_batch_allparts = init_pair_batch_allparts(iter)
 end
 
 %% concat all parts
-function pairs_batch = concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter)
+function pairs_batch = concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter,pairs_number_all,pos_ratio)
     full_size=length(pair_batch_allparts)*pairs_number_iter;
     pairs_batch=zeros(full_size,5)-1;
     % fill in the data
@@ -111,6 +105,36 @@ function pairs_batch = concat_pair_batch_parts(pair_batch_allparts,pairs_number_
         idx_start=(j-1)*pairs_number_iter+1;
         idx_end=j*pairs_number_iter;
         pairs_batch(idx_start:idx_end,:)=pair_batch_allparts(j).pairs_batch_part;
+    end
+    % delete extra if needed
+    num_del=full_size-pairs_number_all;
+    if num_del>0
+        neg_position=find(pairs_batch(:,5)==0);
+        pos_position=find(pairs_batch(:,5)==1);
+        pos_number=floor(pairs_number_all*pos_ratio);
+        pos_cur_number=sum(pairs_batch(:,5));
+        if pos_cur_number<=pos_number
+            % delete negative samples
+            del_pos=randperm(length(neg_position));
+            del_pos=neg_position(del_pos(1:num_del));
+            pairs_batch(del_pos,:)=[];
+        else
+            if num_del>(pos_cur_number-pos_number)
+                % delete positive and negative samples
+                del_pos=randperm(length(pos_position));
+                del_pos=pos_position(del_pos(1:(pos_cur_number-pos_number)));
+                pairs_batch(del_pos,:)=[];
+                clear del_pos;
+                del_pos=randperm(length(neg_position));
+                del_pos=neg_position(del_pos(1:num_del-(pos_cur_number-pos_number)));
+                pairs_batch(del_pos,:)=[];  
+            else
+                % delete only positive samples
+                del_pos=randperm(length(pos_position));
+                del_pos=pos_position(del_pos(1:num_del));
+                pairs_batch(del_pos,:)=[];          
+            end
+        end
     end
     % shuffle the batch
     pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);

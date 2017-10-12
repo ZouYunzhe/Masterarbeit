@@ -33,18 +33,57 @@ switch (pairs_type)
         else
             if delta_frame==0
                 % in the same frame
-                
+                max_it=length(labled_frame_numbers);
+                pair_batch_allparts = init_pair_batch_allparts(max_it);
+                pairs_number_iter = ceil(pairs_number_all/max_it);
+                frame_idx_tmp =[seq_list.box_list.frame_idx];
+                track_id_tmp =[seq_list.box_list.track_id];
+                for it = 1:max_it
+                    frame_idx = labled_frame_numbers(it);
+                    box_idx_tmp=1:length(frame_idx_tmp);
+                    boxes_idx_frame_logical = frame_idx_tmp==frame_idx; % logical index
+                    track_id_frame = track_id_tmp(boxes_idx_frame_logical); % track_id of the current frame
+                    boxes_idx_frame = box_idx_tmp(boxes_idx_frame_logical); % integer numbers
+                    num_boxes = length(track_id_frame);
+                    same_track_id_mat=~xor(repmat(track_id_frame,num_boxes,1),repmat(track_id_frame',1,num_boxes));
+                    [box_idx1,box_idx2]=meshgrid(1:num_boxes,1:num_boxes);                    
+                    box_idx1=box_idx1(:);
+                    box_idx2=box_idx2(:);
+                    pairs=[box_idx1,box_idx2];
+                    same_track_id_mat=same_track_id_mat(:);
+                    same_track_id_mat=same_track_id_mat((pairs(:,1)<pairs(:,2)));
+                    pairs=pairs((pairs(:,1)<pairs(:,2)),:);
+                    pos_pairs_frame_idx=find(same_track_id_mat==1);
+                    neg_pairs_frame_idx=find(same_track_id_mat==0);
+                    % get the positive and negative samples
+                    k = round(pairs_number_iter*pos_ratio); % number of positive 
+                    k_ = pairs_number_iter-k; % number of negative 
+                    p_pos = randperm(length(pos_pairs_frame_idx));
+                    p_pos = p_pos(1:k); 
+                    p_neg = randperm(length(neg_pairs_frame_idx));
+                    p_neg = p_neg(1:k_); 
+                    pairs_batch_part = zeros(pairs_number_iter,5)-1;
+                    pairs_pos_tmp=[boxes_idx_frame(pairs(pos_pairs_frame_idx(p_pos),1));boxes_idx_frame(pairs(pos_pairs_frame_idx(p_pos),2))]';
+                    pairs_pos_tmp(:,3:5)=1;
+                    pairs_neg_tmp=[boxes_idx_frame(pairs(neg_pairs_frame_idx(p_neg),1));boxes_idx_frame(pairs(neg_pairs_frame_idx(p_neg),2))]';
+                    pairs_neg_tmp(:,3:4)=1;
+                    pairs_neg_tmp(:,5)=0;
+                    pairs_batch_part(1:size(pairs_pos_tmp,1),:)=pairs_pos_tmp;
+                    pairs_batch_part(size(pairs_pos_tmp,1)+1:end,:)=pairs_neg_tmp;
+                    pair_batch_allparts(it).pairs_batch_part=pairs_batch_part;    
+                end
+                pairs_batch= concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter,pairs_number_all,pos_ratio);
             else
+                % in different frames
                 max_it=labled_frame_numbers(end)-delta_frame-labled_frame_numbers(1)+1;
                 pair_batch_allparts = init_pair_batch_allparts(max_it);
                 pairs_number_iter = ceil(pairs_number_all/max_it);
+                frame_idx_tmp =[seq_list.box_list.frame_idx];
+                track_id_tmp =[seq_list.box_list.track_id];
                 for it =1:max_it
                    frame1_idx = labled_frame_numbers(it);
-                   frame2_idx = labled_frame_numbers(it)+delta_frame;
-                   
-                   frame_idx_tmp =[ seq_list.box_list.frame_idx];
+                   frame2_idx = labled_frame_numbers(it)+delta_frame;                 
                    box_idx_tmp=1:length(frame_idx_tmp);
-                   track_id_tmp =[ seq_list.box_list.track_id];
                    boxes_idx_frame1_logical = frame_idx_tmp==frame1_idx; % logical numbers 
                    boxes_idx_frame2_logical = frame_idx_tmp==frame2_idx; % logical numbers 
                    track_id_frame1 = track_id_tmp(boxes_idx_frame1_logical);

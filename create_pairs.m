@@ -104,12 +104,12 @@ end
 
 %% concat all parts
 function pairs_batch = concat_pair_batch_parts(pair_batch_allparts,pairs_number_iter)
-    full_size=length(pair_batch_allparts)*pairs_number_iter*2;
+    full_size=length(pair_batch_allparts)*pairs_number_iter;
     pairs_batch=zeros(full_size,5)-1;
     % fill in the data
     for j=1:length(pair_batch_allparts)
-        idx_start=(j-1)*50+1;
-        idx_end=j*50;
+        idx_start=(j-1)*pairs_number_iter+1;
+        idx_end=j*pairs_number_iter;
         pairs_batch(idx_start:idx_end,:)=pair_batch_allparts(j).pairs_batch_part;
     end
     % shuffle the batch

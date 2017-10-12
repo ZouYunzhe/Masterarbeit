@@ -35,7 +35,7 @@ for Annotation_index = 1 : size(Annotation_files,1)
         % show parts
     %     hold on
         for j = 1:num_rec
-            if isempty(Annotation.annolist(Img_Index).annorect(j).annopoints)
+            if isempty(Annotation.annolist(Img_Index).annorect(j).annopoints)||
     %             disp('non-existent field "annopoints"');
                 continue;
             end

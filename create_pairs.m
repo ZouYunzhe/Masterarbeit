@@ -129,11 +129,6 @@ switch (pairs_type)
         joint_frames=joint_frames(cur_joint_logical_idx);
         joint_frames_unique=unique(joint_frames);
         labled_box_frame=unique([seq_list.box_list.frame_idx]);
-        pairs_batch = zeros(pairs_number_all,5)-1;
-        pairs_batch(:,3)=0;
-        pairs_batch(:,4)=1;
-        k = round(pairs_number_all*pos_ratio); % number of positive 
-        k_ = pairs_number_all-k; % number of negative 
         pairs_all=[];
         for it = 1:length(joint_frames_unique)
             if sum(labled_box_frame==joint_frames_unique(it)+delta_frame)>0
@@ -163,25 +158,30 @@ switch (pairs_type)
             pairs_all=cat(1,pairs_all,pairs_part);            
         end        
         % randomly select pairs
-        pos_poistions=find(pairs_all(:,3)==1);
-        pos_poistions_selected=pos_poistions(randperm(length(pos_poistions)));
-        if k>length(pos_poistions_selected)
+        k = round(pairs_number_all*pos_ratio); % number of positive 
+        k_ = pairs_number_all-k; % number of negative 
+        cur_num_pos=sum(pairs_all(:,3));
+        cur_num_neg=size(pairs_all,1)-cur_num_pos;
+        if k>cur_num_pos||k_>cur_num_neg
             % not enough positive samples
-            k=pos_poistions_selected;
-            k_=round(k/pos_ratio*(1-pos_ratio));                
+            % try to keep the pos_ratio                 
+            [k,k_]=keep_pos_ratio(pos_ratio,cur_num_pos,cur_num_neg);
+            pairs_number_all=k+k_;
         end
-        pos_poistions_selected=pos_poistions_selected(1:k);
-        pairs_batch(1:k,1:2)=pairs_all(pos_poistions_selected,1:2);
-        pairs_batch(1:k,5)=pairs_all(pos_poistions_selected,3);
-        neg_poistions=find(pairs_all(:,3)==0);
-        neg_poistions_selected=neg_poistions(randperm(length(neg_poistions)));
-        neg_poistions_selected=neg_poistions_selected(1:k_);
-        pairs_batch(k+1:k+k_,1:2)=pairs_all(neg_poistions_selected,1:2);
-        pairs_batch(k+1:k+k_,5)=pairs_all(neg_poistions_selected,3); 
-        % delete the empty 
-        if sum(pairs_batch(:,5)==-1)>0
-            pairs_batch((pairs_batch(:,5)==-1),:)=[];
-        end
+        pairs_batch = zeros(pairs_number_all,5)-1;
+        pairs_batch(:,3)=0;
+        pairs_batch(:,4)=1;
+        
+        pos_positions=find(pairs_all(:,3)==1);
+        pos_positions_selected=pos_positions(randperm(length(pos_positions)));
+        pos_positions_selected=pos_positions_selected(1:k);
+        pairs_batch(1:k,1:2)=pairs_all(pos_positions_selected,1:2);
+        pairs_batch(1:k,5)=pairs_all(pos_positions_selected,3);
+        neg_positions=find(pairs_all(:,3)==0);
+        neg_positions_selected=neg_positions(randperm(length(neg_positions)));
+        neg_positions_selected=neg_positions_selected(1:k_);
+        pairs_batch(k+1:k+k_,1:2)=pairs_all(neg_positions_selected,1:2);
+        pairs_batch(k+1:k+k_,5)=pairs_all(neg_positions_selected,3); 
         % shuffle batch
         pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);
     case 3
@@ -202,11 +202,6 @@ switch (pairs_type)
             joint2_frames=joint_frames(joint2_logical_idx);
             joint1_frames_unique=unique(joint1_frames);
             joint2_frames_unique=unique(joint2_frames);
-            pairs_batch = zeros(pairs_number_all,5)-1;
-            pairs_batch(:,3)=0;
-            pairs_batch(:,4)=0;
-            k = round(pairs_number_all*pos_ratio); % number of positive 
-            k_ = pairs_number_all-k; % number of negative 
             pairs_all=[];
             for it = 1:length(joint1_frames_unique)
                 if sum(joint2_frames_unique==joint1_frames_unique(it)+delta_frame)>0
@@ -233,26 +228,32 @@ switch (pairs_type)
                 end
                 pairs_all=cat(1,pairs_all,pairs_part);            
             end        
-            % randomly select pairs
-            pos_poistions=find(pairs_all(:,3)==1);
-            pos_poistions_selected=pos_poistions(randperm(length(pos_poistions)));
-            if k>length(pos_poistions_selected)
+            % randomly select pairs and make the batch
+            k = round(pairs_number_all*pos_ratio); % number of positive 
+            k_ = pairs_number_all-k; % number of negative 
+            cur_num_pos=sum(pairs_all(:,3));
+            cur_num_neg=size(pairs_all,1)-cur_num_pos;
+            if k>cur_num_pos||k_>cur_num_neg
                 % not enough positive samples
-                k=pos_poistions_selected;
-                k_=round(k/pos_ratio*(1-pos_ratio));                
+                % try to keep the pos_ratio                 
+                [k,k_]=keep_pos_ratio(pos_ratio,cur_num_pos,cur_num_neg);
+                pairs_number_all=k+k_;
             end
-            pos_poistions_selected=pos_poistions_selected(1:k);
-            pairs_batch(1:k,1:2)=pairs_all(pos_poistions_selected,1:2);
-            pairs_batch(1:k,5)=pairs_all(pos_poistions_selected,3);
-            neg_poistions=find(pairs_all(:,3)==0);
-            neg_poistions_selected=neg_poistions(randperm(length(neg_poistions)));
-            neg_poistions_selected=neg_poistions_selected(1:k_);
-            pairs_batch(k+1:k+k_,1:2)=pairs_all(neg_poistions_selected,1:2);
-            pairs_batch(k+1:k+k_,5)=pairs_all(neg_poistions_selected,3);
-            % delete the empty 
-            if sum(pairs_batch(:,5)==-1)>0
-                pairs_batch((pairs_batch(:,5)==-1),:)=[];
-            end
+            pairs_batch = zeros(pairs_number_all,5)-1;
+            pairs_batch(:,3)=0;
+            pairs_batch(:,4)=0;
+            
+            
+            pos_positions=find(pairs_all(:,3)==1);
+            pos_positions_selected=pos_positions(randperm(length(pos_positions)));
+            pos_positions_selected=pos_positions_selected(1:k);
+            pairs_batch(1:k,1:2)=pairs_all(pos_positions_selected,1:2);
+            pairs_batch(1:k,5)=pairs_all(pos_positions_selected,3);
+            pos_positions=find(pairs_all(:,3)==0);
+            pos_positions_selected=pos_positions(randperm(length(pos_positions)));
+            pos_positions_selected=pos_positions_selected(1:k_);
+            pairs_batch(k+1:k+k_,1:2)=pairs_all(pos_positions_selected,1:2);
+            pairs_batch(k+1:k+k_,5)=pairs_all(pos_positions_selected,3);
             % shuffle batch
             pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);
         end
@@ -310,4 +311,15 @@ function pairs_batch = concat_pair_batch_parts(pair_batch_allparts,pairs_number_
     end
     % shuffle the batch
     pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);
+end
+
+function [pos_tmp,neg_tmp]=keep_pos_ratio(pos_ratio,n_pos,n_neg)
+    pos_tmp=0;
+    neg_tmp=0;
+    while(pos_tmp<=n_pos&&neg_tmp<=n_neg)
+        pos_tmp=pos_tmp+1;
+        neg_tmp=round(pos_tmp/pos_ratio*(1-pos_ratio));
+    end
+    pos_tmp=pos_tmp-1;
+    neg_tmp=round(pos_tmp/pos_ratio*(1-pos_ratio));
 end

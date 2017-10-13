@@ -165,14 +165,23 @@ switch (pairs_type)
         % randomly select pairs
         pos_poistions=find(pairs_all(:,3)==1);
         pos_poistions_selected=pos_poistions(randperm(length(pos_poistions)));
+        if k>length(pos_poistions_selected)
+            % not enough positive samples
+            k=pos_poistions_selected;
+            k_=round(k/pos_ratio*(1-pos_ratio));                
+        end
         pos_poistions_selected=pos_poistions_selected(1:k);
         pairs_batch(1:k,1:2)=pairs_all(pos_poistions_selected,1:2);
         pairs_batch(1:k,5)=pairs_all(pos_poistions_selected,3);
         neg_poistions=find(pairs_all(:,3)==0);
         neg_poistions_selected=neg_poistions(randperm(length(neg_poistions)));
         neg_poistions_selected=neg_poistions_selected(1:k_);
-        pairs_batch(k+1:end,1:2)=pairs_all(neg_poistions_selected,1:2);
-        pairs_batch(k+1:end,5)=pairs_all(neg_poistions_selected,3);        
+        pairs_batch(k+1:k+k_,1:2)=pairs_all(neg_poistions_selected,1:2);
+        pairs_batch(k+1:k+k_,5)=pairs_all(neg_poistions_selected,3); 
+        % delete the empty 
+        if sum(pairs_batch(:,5)==-1)>0
+            pairs_batch((pairs_batch(:,5)==-1),:)=[];
+        end
         % shuffle batch
         pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);
     case 3
@@ -189,8 +198,8 @@ switch (pairs_type)
             joint2_logical_idx=joint_type_list==type_of_joint2; % logical index for joint 2            
             joint1_idx=find(joint1_logical_idx==1);
             joint2_idx=find(joint2_logical_idx==1);
-            joint1_frames=joint_frames(cur_joint1_logical_idx);
-            joint2_frames=joint_frames(cur_joint2_logical_idx);
+            joint1_frames=joint_frames(joint1_logical_idx);
+            joint2_frames=joint_frames(joint2_logical_idx);
             joint1_frames_unique=unique(joint1_frames);
             joint2_frames_unique=unique(joint2_frames);
             pairs_batch = zeros(pairs_number_all,5)-1;
@@ -200,24 +209,22 @@ switch (pairs_type)
             k_ = pairs_number_all-k; % number of negative 
             pairs_all=[];
             for it = 1:length(joint1_frames_unique)
-                if sum(labled_box_frame==joint_frames_unique(it)+delta_frame)>0
-                    % box available
-                    cur_joint_frame_id=joint_frames_unique(it);
-                    cur_box_frame_id=joint_frames_unique(it)+delta_frame;
-                    cur_joint_logical_idx=joint_frames==cur_joint_frame_id;
-                    cur_joint_idx=joint_idx(cur_joint_logical_idx);
-                    cur_box_logical_idx=[seq_list.box_list.frame_idx]==cur_box_frame_id;
-                    cur_box_idx=find(cur_box_logical_idx);
+                if sum(joint2_frames_unique==joint1_frames_unique(it)+delta_frame)>0
+                    % joint type 2 available
+                    cur_joint1_frame_id=joint1_frames_unique(it);
+                    cur_joint2_frame_id=joint1_frames_unique(it)+delta_frame;
+                    cur_joint1_logical_idx=joint1_frames==cur_joint1_frame_id;
+                    cur_joint2_logical_idx=joint2_frames==cur_joint2_frame_id;
+                    cur_joint1_idx=joint1_idx(cur_joint1_logical_idx);
+                    cur_joint2_idx=joint2_idx(cur_joint2_logical_idx);
                     tmp=[seq_list.joint_list.joints.track_id];
-                    cur_joint_track_id=tmp(cur_joint_logical_idx);
-                    clear tmp;
-                    tmp = [seq_list.box_list.track_id];
-                    cur_box_track_id=tmp(cur_box_logical_idx);
-                    same_track_id_mat=~xor(repmat(cur_box_track_id,length(cur_joint_track_id),1),repmat(cur_joint_track_id',1,length(cur_box_track_id)));
+                    cur_joint1_track_id=tmp(cur_joint1_logical_idx);
+                    cur_joint2_track_id=tmp(cur_joint2_logical_idx);
+                    same_track_id_mat=~xor(repmat(cur_joint2_track_id,length(cur_joint1_track_id),1),repmat(cur_joint1_track_id',1,length(cur_joint2_track_id)));
                     pairs_part=zeros(numel(same_track_id_mat),3)-1;
-                    col1=repmat(cur_joint_idx,length(cur_box_track_id),1);
+                    col1=repmat(cur_joint1_idx,length(cur_joint2_idx),1);
                     col1=col1(:);
-                    col2=repmat(cur_box_idx',length(cur_joint_track_id),1)';
+                    col2=repmat(cur_joint2_idx',length(cur_joint1_idx),1)';
                     col3=same_track_id_mat';
                     col3=col3(:);
                     pairs_part(:,1)=col1;
@@ -229,14 +236,23 @@ switch (pairs_type)
             % randomly select pairs
             pos_poistions=find(pairs_all(:,3)==1);
             pos_poistions_selected=pos_poistions(randperm(length(pos_poistions)));
+            if k>length(pos_poistions_selected)
+                % not enough positive samples
+                k=pos_poistions_selected;
+                k_=round(k/pos_ratio*(1-pos_ratio));                
+            end
             pos_poistions_selected=pos_poistions_selected(1:k);
             pairs_batch(1:k,1:2)=pairs_all(pos_poistions_selected,1:2);
             pairs_batch(1:k,5)=pairs_all(pos_poistions_selected,3);
             neg_poistions=find(pairs_all(:,3)==0);
             neg_poistions_selected=neg_poistions(randperm(length(neg_poistions)));
             neg_poistions_selected=neg_poistions_selected(1:k_);
-            pairs_batch(k+1:end,1:2)=pairs_all(neg_poistions_selected,1:2);
-            pairs_batch(k+1:end,5)=pairs_all(neg_poistions_selected,3);        
+            pairs_batch(k+1:k+k_,1:2)=pairs_all(neg_poistions_selected,1:2);
+            pairs_batch(k+1:k+k_,5)=pairs_all(neg_poistions_selected,3);
+            % delete the empty 
+            if sum(pairs_batch(:,5)==-1)>0
+                pairs_batch((pairs_batch(:,5)==-1),:)=[];
+            end
             % shuffle batch
             pairs_batch = pairs_batch(randperm(size(pairs_batch,1)),:);
         end

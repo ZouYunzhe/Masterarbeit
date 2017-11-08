@@ -1,0 +1,19 @@
+function M_aug_fpos=box_augmentation_fpos(bbox,aug_number_fpos,thres_iou_fpos)
+    p_top_left_x = bbox(3);
+    p_top_left_y = bbox(4);
+    rec_width = bbox(5);
+    rec_height = bbox(6);
+    k = 2*thres_iou_fpos/(1+thres_iou_fpos);
+    M_aug_fpos_tmp = repmat(bbox,aug_number_fpos,1);
+    M_aug_fpos_tmp(:,3:4)=0;
+    M_aug_fpos_tmp(:,8)=-1;
+    M_aug_fpos_tmp(1,3)=p_top_left_x-rec_width*(1-k);
+    M_aug_fpos_tmp(1,4)=p_top_left_y;
+    M_aug_fpos_tmp(2,3)=p_top_left_x+rec_width*(1-k);
+    M_aug_fpos_tmp(2,4)=p_top_left_y;
+    M_aug_fpos_tmp(3,3)=p_top_left_x;
+    M_aug_fpos_tmp(3,4)=p_top_left_y-rec_height*(1-k);
+    M_aug_fpos_tmp(4,3)=p_top_left_x;
+    M_aug_fpos_tmp(4,4)=p_top_left_y+rec_height*(1-k);
+    M_aug_fpos = [M_aug_fpos_tmp(1,:),M_aug_fpos_tmp(2,:),M_aug_fpos_tmp(3,:),M_aug_fpos_tmp(4,:)];
+end

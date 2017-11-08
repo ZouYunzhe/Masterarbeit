@@ -13,7 +13,7 @@ Annotation_Path = '/home/zouyunzhe/JointTracking/tmp/posetrack/posetrack_data/an
 Annotation_Path = fullfile(Annotation_Path,labels_type);
 Annotation_files = dir(fullfile(Annotation_Path,'*.mat'));
 
-Annotation_index = 134;
+Annotation_index = 1;
 
 Annotation_dir = fullfile(Annotation_Path,Annotation_files(Annotation_index).name);
 Annotation = load(Annotation_dir);
@@ -34,7 +34,7 @@ for Img_Index = 40:40 %size(Annotation.annolist,2)
     imshow(I);
     % show parts
     hold on
-    for j = 8:8%1:num_rec
+    for j = 1:num_rec
         if isempty(Annotation.annolist(Img_Index).annorect(j).annopoints)
 %             disp('non-existent field "annopoints"');
             continue;

@@ -1,0 +1,42 @@
+function pairs = create_pairs_mot16(frame_pair,groundtruth,num_box_pair_total,pos_ratio,fpos_ratio)
+% outputs: 
+%   pairs: the box pairs with size of num_box_pair_max*11
+%             (x1,y1,w1,h1,t1,x2,y2,w2,h2,t2,label)
+    if frame_pair(1)~=frame_pair(2)
+        num_ponum_box_pair_total = 
+        labels=groundtruth(:,2);
+        boxes_frame1_logic=groundtruth(:,1)==frame_pair(1);
+        boxes_frame1_id=find(boxes_frame1_logic==1);
+        number_boxes_frame1=length(boxes_frame1_id);
+        labels_frame1=labels(boxes_frame1_logic);
+        boxes_frame2_logic=groundtruth(:,1)==frame_pair(2);
+        boxes_frame2_id=find(boxes_frame2_logic==1);
+        labels_frame2=labels(boxes_frame2_logic);
+        number_boxes_frame2=length(boxes_frame2_id);
+        [Label1,Label2]=meshgrid(labels_frame1,labels_frame2);
+        pair_labels_tmp=Label1-Label2;
+        pair_labels=zeros(size(pair_labels_tmp))-1;
+        pair_labels(pair_labels_tmp==0)=1;
+        pair_labels(pair_labels_tmp~=0)=0;
+        pair_labels=pair_labels(:);
+        [pairs_id_frame1,pairs_id_frame2]=meshgrid(boxes_frame1_id,boxes_frame2_id);
+        pairs_id_frame1=pairs_id_frame1(:);
+        pairs_id_frame2=pairs_id_frame2(:);
+        pairs_tmp=zeros(number_boxes_frame1*number_boxes_frame2,5);
+        for it = 1:number_boxes_frame1*number_boxes_frame2
+            pairs_tmp(it,:)=[frame_pair(1),frame_pair(2),pairs_id_frame1(it),pairs_id_frame2(it),pair_labels(it)];
+        end
+        k_max=1;
+        if k_max~=-1 % -1 for all
+            pos_pairs=pairs_tmp(pairs_tmp(:,5)==1,:);
+            neg_pairs=pairs_tmp(pairs_tmp(:,5)==0,:);
+            select_pos=randperm(length(pos_pairs));
+            select_neg=randperm(length(neg_pairs));
+            n_pos=round(k_max*pos_ratio);
+            pairs=[pos_pairs(select_pos(1:n_pos),:);neg_pairs(select_neg(1:k_max-n_pos),:)];
+%             pairs=pairs_tmp(select(1:k_max-n_pos));
+        else
+            pairs=pairs_tmp;
+        end
+    end
+end
